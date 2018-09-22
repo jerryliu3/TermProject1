@@ -68,7 +68,15 @@ class BPlusTree:
 	
 	def printTree(self):
 		return 0
-	
+	def printTable(self):
+		for x in self.table:
+			#print(x)
+			for y in x:
+				#print("test", end = '')
+				#print(self.table[x][y], end = '')
+				print(y, end = ', ')
+			print()
+		return 0
 	def insert(self, key, value):
 		return 0
 	def delete(self, tid):
@@ -112,6 +120,8 @@ def main():
 		if(choice == "print table"):
 			tree.printTree()
 			#print the table
+		elif(choice == "print"):
+			tree.printTable()
 		elif(choice == "quit"):
 			break
 
