@@ -6,9 +6,32 @@ import numpy
 import csv
 
 class Node:
-	values  = 0
+	#based on the value of d
+	min = 0
+	max = 0
+	children = None
 	def __init__(self):
-		values = 0
+		self.keys = list()
+		self.values = list()
+		self.size = 0
+		
+	def __init__(self, min, max):
+		self.min = min
+		self.max = max
+		
+	def add(self, key, value):
+		for x in range(0, self.keys.size()):
+			if(key[0] <= self.keys[x][0]):
+				for y in range(x, self.keys.size()):
+					if(key[1] <= self.keys[x][1]):
+						if(key[0] == self.keys[x][0] && key[1] == self.keys[x][1]):
+							self.values.pop(y).insert(value)
+						self.values.insert(y, value)
+						#missing cases if there's too many items
+						#missing case handling if already exists and similar stuff for other functions
+						
+		return 0
+	
 	def splitNode(self):
 		global filecounter
 		newNode = Node()
@@ -42,9 +65,15 @@ class Node:
 		return midKey, newNode
 
 class BPlusTree:
-	root = None;
-	d = 0;
-	table = list();
+
+	root = None
+	d = 0
+	table = list()
+	
+	#currently setting up to be exactly like the example so that functions can be tested
+	#current keys are rating and date
+	key1 = 3
+	key2 = 4
 	
 	def __init__(self):
 		
@@ -62,11 +91,12 @@ class BPlusTree:
 				self.table.append(row)
 				#for x in row:
 				#print(x)
-		for x in range(tid1, tid2): #need to add one to this
+		for x in range(tid1, tid2 + 1):
 			#self.insert(self.table[x][0])
 			return 0
 	
 	def printTree(self):
+		#just use a queue that goes through the node's children
 		return 0
 	def printTable(self):
 		for x in self.table:
@@ -77,7 +107,14 @@ class BPlusTree:
 				print(y, end = ', ')
 			print()
 		return 0
-	def insert(self, key, value):
+	def insert(self, tid):
+		key = [self.table[tid][key1], self.table[tid][key2]]
+		value = tid
+		if(self.root == None):
+			Node n = Node(1, self.d-1)
+			n.add(key, value)
+			root = n
+		#find the right node to insert into
 		return 0
 	def delete(self, tid):
 		return 0
