@@ -32,7 +32,8 @@ class Node:
 				temp = list()
 				temp.append(value)
 				self.values.insert(x, temp)
-			if(key[0] == self.keys[x][0]):
+				return 0
+			elif(key[0] == self.keys[x][0]):
 				for y in range(x, len(self.keys)):
 					if(key[1] <= self.keys[x][1]):
 						if(key[0] == self.keys[x][0] and key[1] == self.keys[x][1]):
@@ -42,9 +43,11 @@ class Node:
 									self.values[y].insert(z, value)
 									return 0
 								elif(value == temp[z]):
+									print(value)
+									print(temp[z])
 									print("already exists")
 									return 0
-							self.values[y].append(z, value)
+							self.values[y].append(value)
 							return 0
 						else:
 							self.keys.insert(y, key)
@@ -63,7 +66,15 @@ class Node:
 		temp = list()
 		temp.append(value)
 		self.values.append(temp)
-			
+		self.size = self.size + 1
+		return 0
+		
+	def remove(self, x, key, value):
+		self.values[x].remove(value) #make sure it is removing the value and not that index
+		if(len(self.values[x]) == 0):
+			self.keys.remove(x)
+			self.values.remove(x)
+		self.size = self.size - 1
 		return 0
 
 class BPlusTree:
@@ -85,7 +96,7 @@ class BPlusTree:
 		#other nodes must have d/2 - 1 to d-1 key value pairs
 
 	def load(self, filename, tid1, tid2):
-	
+		self.table.append(['tid','thing','thing','thing','thing'])
 		with open(filename) as csvfile:
 			readCSV = csv.reader(csvfile, delimiter=',')
 			for row in readCSV:
@@ -94,8 +105,10 @@ class BPlusTree:
 				#for x in row:
 				#print(x)
 		for x in range(tid1, tid2 + 1):
-			self.insert(int(self.table[x][0]))
-			return 0
+			print("test")
+			print(x)
+			self.insert(x)
+		return 0
 	
 	def printTree(self):
 		queue = list()
@@ -103,16 +116,15 @@ class BPlusTree:
 		current = self.root
 		if(current == None):
 			return 0
-		print("Level 1: ", end = '')
-		#print keys of root
+		#print keys of root #MAKE NOTE THAT REMOVE AND POP ARE DIFFERENT IN THE LIST MAKE SURE TO NOT CONFUSE ANYWHERE
 		queue.append(current)
-		level.append(2)
-		previousLevel = 1
+		level.append(1)
+		previousLevel = 0
 		while(len(queue) > 0):
-			current = queue.remove(0)
-			currentLevel = level.remove(0)
+			current = queue.pop(0)
+			currentLevel = level.pop(0)
 			if(currentLevel != previousLevel):
-				print("Level __: ", end = '')
+				print("Level " + str(currentLevel) + ": ", end = '')
 				previousLevel = currentLevel
 			if(not current.leaf):
 				q = current.keys
@@ -131,11 +143,15 @@ class BPlusTree:
 				size = len(keys)
 				for x in range(0, size):
 					print(keys[x], end = '')
-					print(" ")
-					print(values[x])
-					print(" --> ")
+					print(" ", end = '')
+					print(values[x], end = '')
+					if(x < size -1):
+						print(" --> ", end = '')
+					else:
+						print()
 						
 		return 0
+		
 	def printTable(self):
 		for x in self.table:
 			#print(x)
@@ -145,7 +161,141 @@ class BPlusTree:
 				print(y, end = ', ')
 			print()
 		return 0
+		
 	def insert(self, tid):
+		print("the tid is")
+		print(tid)
+		key = [self.table[tid][self.key1], self.table[tid][self.key2]]
+		print(key)
+		value = tid
+		stack = list()
+		current = self.root
+		#added this but not sure if this is required or already taken into consideration
+		if(current == None):
+			n = Node(1, self.d-1)
+			n.add(key, value)
+			self.root = n
+			print("Added root")
+			return 0
+		while(not current.leaf):
+			stack.append(current)
+			q = current.keys
+			first = 0
+			last = len(q)-1
+			if(key[0] < q[first][0] or key[0] == q[first][0] and key[1] <= q[first][1]):
+				current = current.values[first]
+			elif(key[0] > q[last][0] or key[0] == q[last][0] and key[1] <= q[last][1]):
+				current = current.values[last+1]
+			else:			
+				for x in range(1, len(q)):
+					#not fully optimized, but written this way for clearer organization
+					if(key[0] > q[x-1][0]):
+						if(key[0] < q[x][0] or key[0] == q[x][0] and key[1] <= q[x][1]):
+							current = current.values[x]
+					elif(key[0] == q[x-1][0] and key[1] > q[x-1][1]):
+						if(key[0] < q[x][0] or key[0] == q[x][0] and key[1] <= q[x][1]):
+							current = current.values[x]
+		keys = current.keys
+		values = current.values
+		size = len(keys)
+		for x in range(0, size):
+			if(key[0] == keys[x][0] and key[1] == keys[x][1]):
+				if(value not in values[x]):
+					current.add(key, value)
+					return 0
+				#not sure if this else is needed, means it already exists inside
+				else:
+					return 0
+		print("creating a new key and value")
+		#create new key and value
+		if(size < current.max):
+			print("direct")
+			current.add(key, value)
+
+		else:
+			print("trying to do some splitting")
+			temp = current
+			temp.add(key, value)
+			newNode = Node(self.d/2-1, self.d-1)
+			newNode.connection = current.connection
+			j = (self.d+1)/2
+			current.size = 0
+			current.keys.clear()
+			current.values.clear()	
+			x = 0
+			while(len(current.keys) < j):
+				current.keys.append(temp.keys[x])
+				y = 0
+				addList = list()
+				while(current.size < j and y < len(temp.values[x])):
+					addList.append(temp.values[x][y])
+					y = y + 1
+					current.size = current.size + 1
+				current.values.append(addList)
+				if(current.size == j):
+					x = x - 1
+				x = x + 1			
+			while(x < len(temp.keys)):
+				newNode.keys.append(temp.keys[x])
+				y = 0
+				addList = list()
+				while(y < len(temp.values[x])):
+					addList.append(temp.values[x][y])
+					y = y + 1
+					newNode.size = newNode.size + 1
+				newNode.values.append(addList)
+				x = x + 1		
+			current.connection = newNode
+			key = current.keys[j-1]
+			finished = False
+			while(not finished):
+				depth = len(stack)
+				if(depth == 0):
+					
+					#no parent node, create root 
+					finished = True
+				else:
+					current = stack.pop()
+					if(current.size < current.max):
+						current.add(key, value)
+						finished = True
+					else:
+					#need to set new nodes leaves to false somewhere
+						temp = current
+						temp.add(key, value)
+						newNode = Node(self.d/2-1, self.d-1)
+						j = (self.d+1)/2
+						current.size = 0
+						current.keys.clear()
+						current.values.clear()			
+						x = 0
+						while(current.size < j):
+							current.keys.append(temp.keys[x])
+							y = 0
+							addList = list()
+							while(current.size < j and y < len(temp.values[x])):
+								addList.append(temp.values[x][y])
+								y = y + 1
+								current.size = current.size + 1
+							current.values.append(addList)
+							if(current.size == j):
+								x = x - 1
+							x = x + 1			
+						while(x < len(temp.keys)):
+							newNode.keys.append(temp.keys[x])
+							y = 0
+							addList = list()
+							while(y < len(temp.values[x])):
+								addList.append(temp.values[x][y])
+								y = y + 1
+								newNode.size = newNode.size + 1
+							newNode.values.append(addList)
+							x = x + 1		
+						key = current.keys[j-1]
+		print("Insertion has finished")
+		return 0
+		
+	def insert2(self, tid):
 		key = [self.table[tid][self.key1], self.table[tid][self.key2]]
 		value = tid
 		stack = list()
@@ -182,20 +332,20 @@ class BPlusTree:
 				if(value not in values[x]):
 					if(current.size < current.max):
 						current.add(key, value)
-						current.size = current.size + 1
 					else:
 						return 0
 						#split
-				
+				#not sure if this else is needed, means it already exists inside
+				else:
+					return 0
 		#create new key and value
 		if(current.size < current.max):
 			current.add(key, value)
-			current.size = current.size + 1
 
 		else:
 			temp = current
 			temp.add(key, value)
-			newNode = Node(1, self.d-1)
+			newNode = Node(self.d/2-1, self.d-1)
 			newNode.connection = current.connection
 			j = (self.d+1)/2
 			current.size = 0
@@ -237,13 +387,12 @@ class BPlusTree:
 					current = stack.pop()
 					if(current.size < current.max):
 						current.add(key, value)
-						current.size = current.size + 1
 						finished = True
 					else:
 					#need to set new nodes leaves to false somewhere
 						temp = current
 						temp.add(key, value)
-						newNode = Node(1, self.d-1)
+						newNode = Node(self.d/2-1, self.d-1)
 						j = (self.d+1)/2
 						current.size = 0
 						current.keys.clear()
@@ -274,9 +423,47 @@ class BPlusTree:
 						key = current.keys[j-1]
 				
 		return 0
+		
 	def delete(self, tid):
+		key = [self.table[tid][self.key1], self.table[tid][self.key2]]
+		value = tid
+		stack = list()
+		current = self.root
+		#added this but not sure if this is required or already taken into consideration
+		if(current == None):
+			print("No deletion could be made.")
+			return 0
+		while(not current.leaf):
+			stack.append(current)
+			q = current.keys
+			first = 0
+			last = len(q)-1
+			if(key[0] < q[first][0] or key[0] == q[first][0] and key[1] <= q[first][1]):
+				current = current.values[first]
+			elif(key[0] > q[last][0] or key[0] == q[last][0] and key[1] <= q[last][1]):
+				current = current.values[last+1]
+			else:			
+				for x in range(1, len(q)):
+					#not fully optimized, but written this way for clearer organization
+					if(key[0] > q[x-1][0]):
+						if(key[0] < q[x][0] or key[0] == q[x][0] and key[1] <= q[x][1]):
+							current = current.values[x]
+					elif(key[0] == q[x-1][0] and key[1] > q[x-1][1]):
+						if(key[0] < q[x][0] or key[0] == q[x][0] and key[1] <= q[x][1]):
+							current = current.values[x]
+		keys = current.keys
+		values = current.values
+		size = len(keys)
+		for x in range(0, size):
+			if(key[0] == keys[x][0] and key[1] == keys[x][1]):
+				if(value in values[x]):		
+					if(current.size > current.min):
+						current.remove(x, key, value)
+					else:
+						return 0
+						#remove and combine
 		return 0
-
+		
 	def search(self, key):
 		current = self.root
 		if(current == None):
