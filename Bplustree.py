@@ -292,18 +292,79 @@ class BPlusTree:
 			first = 0
 			last = len(q)-1
 			if(key[0] < q[first][0] or key[0] == q[first][0] and key[1] <= q[first][1]):
+				temp = current.values[first]
+				if(last > first and len(temp.keys) == temp.min):
+					if(len(current.values[first+1].keys) >= temp.min + 2):
+						temp.keys.append(current.keys.pop(first))
+						temp.values.append(current.values.pop(first))
+						current.keys.insert(0, current.values[first+1].keys.pop(0))
+						current.values.insert(0, current.values[first+1].values.pop(0))
+						#borrow
+					else:
+						temp.keys.append(current.keys.pop(first))
+						for x in range(0, len(current.values[first+1].keys)):
+							temp.keys.append(current.values[first+1].keys.pop(0))
+							temp.values.append(current.values[first+1].values.pop(0))
+						current.values.pop(first+1)
+						#combine
 				current = current.values[first]
 			elif(key[0] > q[last][0] or key[0] == q[last][0] and key[1] <= q[last][1]):
+				temp = current.values[last].values
+				if(first < last and len(temp) == temp.min):
+					if(len(current.values[last-1].keys) >= temp.min + 2):
+						temp.keys.append(current.keys.pop(last))
+						temp.values.append(current.values.pop(last))
+						current.keys.append(current.values[last-1].keys.pop(0))
+						current.values.append(current.values[last-1].values.pop(0))
+						#borrow
+					else:
+						temp.keys.append(current.keys.pop(last))
+						for x in range(0, len(current.values[last-1].keys)):
+							temp.keys.append(current.values[last-1].keys.pop(0))
+							temp.values.append(current.values[last-1].values.pop(0))
+						current.values.pop(last-1)
+						#combine			
 				current = current.values[last+1]
 			else:			
 				for x in range(1, len(q)):
 					#not fully optimized, but written this way for clearer organization
 					if(key[0] > q[x-1][0]):
 						if(key[0] < q[x][0] or key[0] == q[x][0] and key[1] <= q[x][1]):
-							current = current.values[x]
+						#double check below
+							temp = current.values[x]
+							if(x < len(q)-1 and len(temp.keys) == temp.min):
+								if(len(current.values[x+1].keys) >= temp.min + 2):
+									temp.keys.append(current.keys.pop(x))
+									temp.values.append(current.values.pop(x))
+									current.keys.insert(0, current.values[x+1].keys.pop(0))
+									current.values.insert(0, current.values[x+1].values.pop(0))
+									#borrow
+								else:
+									temp.keys.append(current.keys.pop(x))
+									for x in range(0, len(current.values[x+1].keys)):
+										temp.keys.append(current.values[x+1].keys.pop(0))
+										temp.values.append(current.values[x+1].values.pop(0))
+									current.values.pop(x+1)
+									#combine	
+						current = current.values[x]
 					elif(key[0] == q[x-1][0] and key[1] > q[x-1][1]):
 						if(key[0] < q[x][0] or key[0] == q[x][0] and key[1] <= q[x][1]):
-							current = current.values[x]
+							temp = current.values[x]
+							if(x < len(q) and len(temp.keys) == temp.min):
+								if(len(current.values[x+1].keys) >= temp.min + 2):
+									temp.keys.append(current.keys.pop(x))
+									temp.values.append(current.values.pop(x))
+									current.keys.insert(0, current.values[x+1].keys.pop(0))
+									current.values.insert(0, current.values[x+1].values.pop(0))
+									#borrow
+								else:
+									temp.keys.append(current.keys.pop(x))
+									for x in range(0, len(current.values[x+1].keys)):
+										temp.keys.append(current.values[x+1].keys.pop(0))
+										temp.values.append(current.values[x+1].values.pop(0))
+									current.values.pop(x+1)
+									#combine
+						current = current.values[x]
 		keys = current.keys
 		values = current.values
 		size = len(keys)
@@ -312,10 +373,7 @@ class BPlusTree:
 				if(value in values[x]):		
 					if(size > current.min):
 						current.remove(x, key, value)
-					else:				
-						return 0
-						#remove and combine
-
+						break
 		print("Deletion has finished.")
 		return 0
 		
@@ -361,28 +419,28 @@ class BPlusTree:
 		if(current == None):
 			return 0
 		queue.append(current)
+		print("Attributes are : ", end = '')
+		print(self.table[0])
 		while(len(queue) > 0):
-			current = queue.remove(0)
+			current = queue.pop(0)
 			if(not current.leaf):
 				q = current.keys
 				for x in range(0, len(q)):	
-					if((keyMin[0] < q[first][0] or keyMin[0] == q[first][0] and keyMin[1] <= q[first][1]) and (keyMax[0] > q[first][0] or keyMax[0] == q[first][0] and keyMax[1] > q[first][1])):
+					if((keyMin[0] < q[x][0] or (keyMin[0] == q[x][0] and keyMin[1] <= q[x][1])) and (keyMax[0] > q[x][0] or (keyMax[0] == q[x][0] and keyMax[1] >= q[x][1]))):
 						queue.append(current.values[x])
 						#double check this
 						if(x == len(q)-1):
 							queue.append(current.values[x+1])
-					else:
-						break
 			else:
 				keys = current.keys
 				values = current.values
 				size = len(keys)
 				for x in range(0, size):
-					if((keyMin[0] < keys[x][0] or keyMin[0] == keys[x][0] and keyMin[1] <= keys[x][1]) and (keyMax[0] > keys[x][0] or keyMax[0] == keys[x][0] and keyMax[1] > keys[x][1])):
+					if((keyMin[0] < keys[x][0] or keyMin[0] == keys[x][0] and keyMin[1] <= keys[x][1]) and (keyMax[0] > keys[x][0] or keyMax[0] == keys[x][0] and keyMax[1] >= keys[x][1])):
 						answer = values[x]
 						print("Found tuple IDs : ", end = '')
 						print(answer)
-						for y in range(0, len(answer)):
+						for y in answer:
 							print(self.table[y])
 		
 		return 0
