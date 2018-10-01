@@ -5,6 +5,8 @@ import time
 import numpy
 import csv
 import copy
+import math
+
 class Node:
 	#based on the value of d
 	min = 0
@@ -78,10 +80,9 @@ class BPlusTree:
 	d = 0
 	table = list()
 	
-	#currently setting up to be exactly like the example so that functions can be tested
-	#current keys are rating and date
-	key1 = 4
-	key2 = 5
+	#current keys are rating description and release year
+	key1 = 4 #3 for example
+	key2 = 5 #4 for example
 	
 	def __init__(self):
 		
@@ -91,7 +92,9 @@ class BPlusTree:
 		#other nodes must have d/2 - 1 to d-1 key value pairs
 
 	def load(self, filename, tid1, tid2):
-		self.table.append(['tid','title', 'rating', 'ratingLevel', 'ratingDescription', 'release year', 'user rating score' 'user rating size'])
+		self.table.append(['tid','Title', 'Rating', 'Rating Level', 'Rating Description', 'Release Year', 'User Rating Score', 'User Rating Size'])
+		#self.table.append(['tid','School Code', 'School Name', 'Address', 'City', 'State Code', 'Zip Code'])
+		
 		with open(filename) as csvfile:
 			readCSV = csv.reader(csvfile, delimiter=',')
 			for row in readCSV:
@@ -111,7 +114,6 @@ class BPlusTree:
 		current = self.root
 		if(current == None):
 			return 0
-		#print keys of root #MAKE NOTE THAT REMOVE AND POP ARE DIFFERENT IN THE LIST MAKE SURE TO NOT CONFUSE ANYWHERE
 		queue.append(current)
 		level.append(1)
 		previousLevel = 0
@@ -206,7 +208,7 @@ class BPlusTree:
 					return 0
 				#not sure if this else is needed, means it already exists inside
 				else:
-					print("Entry already exists in the tree")
+					#print("Entry already exists in the tree")
 					return 0
 		#print("creating a new key and value")
 		#create new key and value
@@ -221,7 +223,7 @@ class BPlusTree:
 			#for x in range(0, len(temp.values)):
 			#	print(temp.values[x], end = '')
 			#print()
-			newNode = Node(self.d/2-1, self.d-1)
+			newNode = Node(math.ceil(self.d/2)-1, self.d-1)
 			#changed to temp from current
 			newNode.connection = temp.connection
 			j = int((self.d)/2)
@@ -322,7 +324,7 @@ class BPlusTree:
 						#for x in range(0, len(temp.keys)):
 						#	print(temp.keys[x])
 						#end of testing
-						newNode = Node(self.d/2-1, self.d-1)
+						newNode = Node(math.ceil(self.d/2)-1, self.d-1)
 						newNode.leaf = False
 						j = int((self.d)/2)
 						current.keys.clear()
@@ -364,89 +366,75 @@ class BPlusTree:
 			q = current.keys
 			first = 0
 			last = len(q)-1
-			if(key[0] < q[first][0] or key[0] == q[first][0] and key[1] <= q[first][1]):
-				temp = current.values[first]
-				if(last > first and len(temp.keys) == temp.min):
-					if(len(current.values[first+1].keys) >= temp.min + 2):
-						temp.keys.append(current.keys.pop(first))
-						temp.values.append(current.values.pop(first))
-						current.keys.insert(0, current.values[first+1].keys.pop(0))
-						current.values.insert(0, current.values[first+1].values.pop(0))
-						#borrow
-					else:
-						temp.keys.append(current.keys.pop(first))
-						for x in range(0, len(current.values[first+1].keys)):
-							temp.keys.append(current.values[first+1].keys.pop(0))
-							temp.values.append(current.values[first+1].values.pop(0))
-						current.values.pop(first+1)
-						#combine
+			if(key[0] < q[first][0] or key[0] == q[first][0] and key[1] < q[first][1]):
+				#print("1")
 				current = current.values[first]
-			elif(key[0] > q[last][0] or key[0] == q[last][0] and key[1] <= q[last][1]):
-				temp = current.values[last].values
-				if(first < last and len(temp) == temp.min):
-					if(len(current.values[last-1].keys) >= temp.min + 2):
-						temp.keys.append(current.keys.pop(last))
-						temp.values.append(current.values.pop(last))
-						current.keys.append(current.values[last-1].keys.pop(0))
-						current.values.append(current.values[last-1].values.pop(0))
-						#borrow
-					else:
-						temp.keys.append(current.keys.pop(last))
-						for x in range(0, len(current.values[last-1].keys)):
-							temp.keys.append(current.values[last-1].keys.pop(0))
-							temp.values.append(current.values[last-1].values.pop(0))
-						current.values.pop(last-1)
-						#combine			
+			elif(key[0] == q[first][0] and key[1] == q[first][1]):
+				current = current.values[first+1]
+			elif(key[0] > q[last][0] or key[0] == q[last][0] and key[1] >= q[last][1]):
+				#print("2")
 				current = current.values[last+1]
 			else:			
+				#print("3")
 				for x in range(1, len(q)):
 					#not fully optimized, but written this way for clearer organization
 					if(key[0] > q[x-1][0]):
-						if(key[0] < q[x][0] or key[0] == q[x][0] and key[1] <= q[x][1]):
-						#double check below
-							temp = current.values[x]
-							if(x < len(q)-1 and len(temp.keys) == temp.min):
-								if(len(current.values[x+1].keys) >= temp.min + 2):
-									temp.keys.append(current.keys.pop(x))
-									temp.values.append(current.values.pop(x))
-									current.keys.insert(0, current.values[x+1].keys.pop(0))
-									current.values.insert(0, current.values[x+1].values.pop(0))
-									#borrow
-								else:
-									temp.keys.append(current.keys.pop(x))
-									for x in range(0, len(current.values[x+1].keys)):
-										temp.keys.append(current.values[x+1].keys.pop(0))
-										temp.values.append(current.values[x+1].values.pop(0))
-									current.values.pop(x+1)
-									#combine	
-						current = current.values[x]
+						if(key[0] < q[x][0] or key[0] == q[x][0] and key[1] < q[x][1]):
+							current = current.values[x]
+						elif(key[0] == q[x][0] and key[1] == q[x][1]):
+							current = current.values[x+1]
 					elif(key[0] == q[x-1][0] and key[1] > q[x-1][1]):
-						if(key[0] < q[x][0] or key[0] == q[x][0] and key[1] <= q[x][1]):
-							temp = current.values[x]
-							if(x < len(q) and len(temp.keys) == temp.min):
-								if(len(current.values[x+1].keys) >= temp.min + 2):
-									temp.keys.append(current.keys.pop(x))
-									temp.values.append(current.values.pop(x))
-									current.keys.insert(0, current.values[x+1].keys.pop(0))
-									current.values.insert(0, current.values[x+1].values.pop(0))
-									#borrow
-								else:
-									temp.keys.append(current.keys.pop(x))
-									for x in range(0, len(current.values[x+1].keys)):
-										temp.keys.append(current.values[x+1].keys.pop(0))
-										temp.values.append(current.values[x+1].values.pop(0))
-									current.values.pop(x+1)
-									#combine
-						current = current.values[x]
+						if(key[0] < q[x][0] or key[0] == q[x][0] and key[1] < q[x][1]):
+							current = current.values[x]
+						elif(key[0] == q[x][0] and key[1] == q[x][1]):
+							current = current.values[x+1]
+				current = current.values[x+1]
 		keys = current.keys
 		values = current.values
 		size = len(keys)
+		#for x in range(0, size):
+		#	print(current.keys[x])
+		#print(key)
+		#print(size)
+		#print("wtf")
 		for x in range(0, size):
 			if(key[0] == keys[x][0] and key[1] == keys[x][1]):
 				if(value in values[x]):		
-					if(size > current.min):
-						current.remove(x, key, value)
-						break
+					#print(current.min)
+					#print("the current min is above")
+					current.remove(x, key, value)
+					if(len(current.keys) == 0):
+						finished = False
+						while(not finished and len(current.keys) == 0):
+							#print("running")
+							depth = len(stack)
+							if(depth == 0):
+								n = Node(1, self.d-1)
+								self.root = n
+								finished = True
+							else:
+								parent = stack.pop()
+								if(len(parent.keys) > parent.min + 1):
+									finished = True
+								keys = parent.keys
+								values = parent.values
+								for x in range(0, len(values)):
+									#print("iteration")
+									if(values[x] is current):
+										values.pop(x)
+										if(x == 0):
+											keys.pop(x)
+										#elif(x == len(values)-1):
+										#	keys.pop(x-1)
+										else:
+											#print(len(keys))
+											#print(len(values))
+											#print(x)
+											#print("hello")
+											keys.pop(x-1)
+										break
+								current = parent
+					return 0
 		return 0
 		
 	def search(self, key):
@@ -457,9 +445,11 @@ class BPlusTree:
 			q = current.keys
 			first = 0
 			last = len(q)-1
-			if(key[0] < q[first][0] or key[0] == q[first][0] and key[1] <= q[first][1]):
+			if(key[0] < q[first][0] or key[0] == q[first][0] and key[1] < q[first][1]):
 				current = current.values[first]
-			elif(key[0] > q[last][0] or key[0] == q[last][0] and key[1] <= q[last][1]):
+			elif(key[0] == q[first][0] and key[1] == q[first][1]):
+				current = current.values[first+1]
+			elif(key[0] > q[last][0] or key[0] == q[last][0] and key[1] >= q[last][1]):
 				current = current.values[last+1]
 			else:			
 				for x in range(1, len(q)):
@@ -470,6 +460,7 @@ class BPlusTree:
 					elif(key[0] == q[x-1][0] and key[1] > q[x-1][1]):
 						if(key[0] < q[x][0] or key[0] == q[x][0] and key[1] <= q[x][1]):
 							current = current.values[x]
+				current = current.values[len(q)]
 			
 		keys = current.keys
 		values = current.values
@@ -486,6 +477,7 @@ class BPlusTree:
 		return 0
 
 	def range_search(self, keyMin, keyMax):
+		map = list()
 		queue = list()
 		current = self.root
 		if(current == None):
@@ -500,6 +492,7 @@ class BPlusTree:
 				for x in range(0, len(q)):	
 					if((keyMin[0] < q[x][0] or (keyMin[0] == q[x][0] and keyMin[1] <= q[x][1])) and (keyMax[0] > q[x][0] or (keyMax[0] == q[x][0] and keyMax[1] >= q[x][1]))):
 						queue.append(current.values[x])
+						queue.append(current.values[x+1])
 						#double check this
 						if(x == len(q)-1):
 							queue.append(current.values[x+1])
@@ -510,40 +503,41 @@ class BPlusTree:
 				for x in range(0, size):
 					if((keyMin[0] < keys[x][0] or keyMin[0] == keys[x][0] and keyMin[1] <= keys[x][1]) and (keyMax[0] > keys[x][0] or keyMax[0] == keys[x][0] and keyMax[1] >= keys[x][1])):
 						answer = values[x]
-						print("Found tuple IDs : ", end = '')
-						print(answer)
 						for y in answer:
-							print(self.table[y])
+							if(y not in map):
+								print(self.table[y])
+								map.append(y)
+								
 		
 		return 0
 		
 def main():
 	tree = BPlusTree()
 	while(1):
-		choice = input("What do you want to do: ")
+		choice = input("What do you want to do (1 = load, 2 = print, 3 = insert, 4 = delete, 5 = search, 6 = range search, 7 = exit): ")
 		if(choice == "1"):
 			filename = input ("File name: ")
 			tid1 = int(input ("First tuple id: "))
 			tid2 = int(input ("Second tuple id: "))
 			tree.load(filename, tid1, tid2)
-			print("The loading operation has finished")
+			print("The loading operation has finished.")
 		if(choice == "2"):
 			tree.printTree()
-			print("The printing operation has finished")
+			print("The printing operation has finished.")
 		elif(choice == "3"):
 			tid = int(input ("Which tid would you like to insert: "))
 			tree.insert(tid)
-			print("The insertion operation has finished")
+			print("The insertion operation has finished.")
 		elif(choice == "4"):
 			tid = int(input("Which tid to delete: "))
 			tree.delete(tid)
-			print("The deletion operation has finished")
+			print("The deletion operation has finished.")
 		elif(choice == "5"):
 			key1 = int(input("First key: "))
 			key2 = int(input("Second key: "))
 			key = [key1, key2]
 			tree.search(key)
-			print("The search operation has finished")
+			print("The search operation has finished.")
 		elif(choice == "6"):
 			key1 = int(input("First key: "))
 			key2 = int(input("Second key: "))
@@ -552,7 +546,7 @@ def main():
 			key5 = [key1, key2]
 			key6 = [key3, key4]
 			tree.range_search(key5, key6)	
-			print("The range search operation has finished")
+			print("The range search operation has finished.")
 
 		elif(choice == "7"):
 			break
